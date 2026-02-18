@@ -8,7 +8,9 @@ on:
 
 jobs:
   test:
-    runs-on: windows-latest
+    # Repo name currently ends with a dot (M.I.T.C.H.), which breaks Windows checkout paths.
+    # Use Linux runner until repo is renamed without trailing dot.
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
