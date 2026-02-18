@@ -73,6 +73,9 @@
       <button id="ingest" class="btn primary">Ingest pasted text</button>
       <button id="sample" class="btn secondary">Load sample</button>
     </div>
+    <div class="row" style="margin-top:8px;">
+      <button id="mark-important" class="btn secondary">Mark latest truth as important</button>
+    </div>
   </aside>
 
   <main id="center" class="glass">
@@ -108,6 +111,7 @@ const drop = document.getElementById('drop');
 const picker = document.getElementById('picker');
 const ingestBtn = document.getElementById('ingest');
 const sampleBtn = document.getElementById('sample');
+const markImportantBtn = document.getElementById('mark-important');
 const pasteEl = document.getElementById('paste');
 const statsEl = document.getElementById('stats');
 const truthEl = document.getElementById('truth');
@@ -155,6 +159,18 @@ ingestBtn.addEventListener('click', async ()=>{
 
 sampleBtn.addEventListener('click', async ()=>{
   await ingestText('Alice is CEO\nRoadmap is stable', 'workspace:sample');
+});
+
+markImportantBtn.addEventListener('click', async ()=>{
+  const latestTruth = (graph.nodes || []).find(n => n.type === 'truth');
+  if(!latestTruth){ termLog.textContent = 'No truth node to tag yet.'; return; }
+  const r = await fetch(`${API}/api/focus-tag`, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ scope:'MINDMAP', targetType:'truth', targetId: latestTruth.id, tag:'important', note:'marked from workspace' })
+  });
+  const j = await r.json();
+  termLog.textContent = j.ok ? `Focus tag added for ${latestTruth.id}` : `Focus tag failed: ${j.error || 'unknown'}`;
 });
 
 ['dragenter','dragover'].forEach(evt=>drop.addEventListener(evt,e=>{e.preventDefault();drop.classList.add('over');}));

@@ -4,6 +4,7 @@ import path from 'node:path';
 import { ingestClaimsFromText } from '../lib/truth/ingest';
 import { resolveTruthForClaimKey } from '../lib/truth/resolver';
 import { buildTruthGraph } from '../lib/truth/graph';
+import { addFocusTag, upsertChatTurn } from '../context-core/store';
 
 const HOST = '127.0.0.1';
 const PORT = 4317;
@@ -19,9 +20,10 @@ async function handleImport(req: http.IncomingMessage, res: http.ServerResponse)
   let body = '';
   for await (const chunk of req) body += chunk;
 
-  const parsed = JSON.parse(body || '{}') as { scope?: string; text?: string; sourceId?: string };
+  const parsed = JSON.parse(body || '{}') as { scope?: string; text?: string; sourceId?: string; provider?: string };
   const scope = parsed.scope ?? 'MINDMAP';
   const sourceId = parsed.sourceId ?? `workspace:${Date.now()}`;
+  const provider = parsed.provider ?? 'manual';
   const text = parsed.text ?? '';
 
   const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
@@ -29,6 +31,18 @@ async function handleImport(req: http.IncomingMessage, res: http.ServerResponse)
   let resolved = 0;
 
   for (const line of lines) {
+    await upsertChatTurn({
+      provider: provider as any,
+      scope,
+      conversationId: sourceId,
+      messageId: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      role: 'user',
+      text: line,
+      timestamp: new Date().toISOString(),
+      sourceUrl: 'workspace://input',
+      meta: { source: 'workspace_server' },
+    });
+
     const r = await ingestClaimsFromText({
       sourceType: 'text',
       sourceId,
@@ -56,6 +70,34 @@ async function handleGraph(req: http.IncomingMessage, res: http.ServerResponse, 
   json(res, 200, { ok: true, graph });
 }
 
+async function handleFocusTag(req: http.IncomingMessage, res: http.ServerResponse) {
+  let body = '';
+  for await (const chunk of req) body += chunk;
+
+  const parsed = JSON.parse(body || '{}') as {
+    scope?: string;
+    targetType?: 'claim' | 'truth' | 'turn';
+    targetId?: string;
+    tag?: 'important' | 'watch' | 'ignore' | 'verify';
+    note?: string;
+  };
+
+  if (!parsed.targetType || !parsed.targetId || !parsed.tag) {
+    return json(res, 400, { ok: false, error: 'invalid focus payload' });
+  }
+
+  await addFocusTag({
+    scope: parsed.scope ?? 'MINDMAP',
+    targetType: parsed.targetType,
+    targetId: parsed.targetId,
+    tag: parsed.tag,
+    note: parsed.note,
+    createdBy: 'workspace-user',
+  });
+
+  return json(res, 200, { ok: true });
+}
+
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url || '/', `http://${HOST}:${PORT}`);
@@ -74,6 +116,11 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === 'GET' && url.pathname === '/api/graph') {
       await handleGraph(req, res, url);
+      return;
+    }
+
+    if (req.method === 'POST' && url.pathname === '/api/focus-tag') {
+      await handleFocusTag(req, res);
       return;
     }
 
