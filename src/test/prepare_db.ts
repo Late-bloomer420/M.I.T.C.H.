@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS claims (
 CREATE TABLE IF NOT EXISTS truth_snapshots (
   id TEXT PRIMARY KEY,
   scope TEXT NOT NULL DEFAULT 'GLOBAL',
+  claim_key TEXT NOT NULL DEFAULT 'global.unknown',
   single_line_of_truth TEXT NOT NULL,
   supporting_claim_ids_json TEXT NOT NULL DEFAULT '[]',
   conflicts_json TEXT NOT NULL DEFAULT '[]',
@@ -64,6 +65,13 @@ CREATE TABLE IF NOT EXISTS truth_snapshots (
   generated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 `);
+
+    // Backfill schema drift for existing local DBs
+    try {
+        sqlite.exec(`ALTER TABLE truth_snapshots ADD COLUMN claim_key TEXT NOT NULL DEFAULT 'global.unknown';`);
+    } catch {
+        // ignore when column already exists
+    }
 
     sqlite.close();
 
