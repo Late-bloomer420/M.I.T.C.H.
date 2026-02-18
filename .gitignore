@@ -1,0 +1,11 @@
+node_modules/
+.qodo/
+*.log
+*.tmp
+*.swp
+.DS_Store
+Thumbs.db
+sqlite.db
+audit.ledger
+.env
+.env.*
