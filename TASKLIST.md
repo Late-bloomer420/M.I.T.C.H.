@@ -88,3 +88,13 @@ _Last updated: 2026-02-18_
 3. [ ] Implement non-placeholder identity map linkage in masker metadata.
 4. [ ] Add audit coverage tests for all privileged actions.
 5. [ ] Add CI workflow to enforce test pass on PRs.
+
+---
+
+## Vision Notes (do not lose)
+
+- [ ] Build a **visible mind map** as the primary truth UI:
+  - [ ] drag-and-drop ingestion (text files, conversation exports, transcript files)
+  - [ ] node/edge graph with provenance on click
+  - [ ] context overlays (source, confidence, timestamp, conflict status)
+  - [ ] one-click "promote to single line of truth" flow (with HITL on sensitive domains)

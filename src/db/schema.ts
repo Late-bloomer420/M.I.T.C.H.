@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, unique } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 
 export const piiTypes = sqliteTable('pii_types', {
@@ -8,8 +8,6 @@ export const piiTypes = sqliteTable('pii_types', {
     sensitivity_level: text('sensitivity_level').default('HIGH'), // HIGH, MEDIUM, LOW
     created_at: text('created_at').default(sql`CURRENT_TIMESTAMP`),
 });
-
-import { unique } from 'drizzle-orm/sqlite-core';
 
 export const identityMap = sqliteTable('identity_map', {
     token_id: text('token_id').primaryKey(), // UUID
@@ -27,4 +25,40 @@ export const dataMappings = sqliteTable('data_mappings', {
     source_field: text('source_field').notNull(),
     pii_type_id: integer('pii_type_id').references(() => piiTypes.id),
     description: text('description'),
+});
+
+// Truth Core Step 1: canonical claim store with provenance and conflict metadata
+export const claims = sqliteTable('claims', {
+    id: text('id').primaryKey(),
+    claim_key: text('claim_key').notNull(), // stable semantic key (e.g. "ceo.company")
+    normalized_claim: text('normalized_claim').notNull(),
+    subject: text('subject').notNull(),
+    predicate: text('predicate').notNull(),
+    object_value: text('object_value').notNull(),
+
+    source_type: text('source_type').notNull(), // text | agent_conversation | transcript | video_transcript
+    source_id: text('source_id').notNull(), // file path, conversation id, transcript id
+    source_ref: text('source_ref'), // line range, message id, segment timestamp
+
+    confidence: integer('confidence').notNull().default(50), // 0-100
+    happened_at: text('happened_at'), // evidence event time
+    ingested_at: text('ingested_at').default(sql`CURRENT_TIMESTAMP`),
+
+    conflict_group: text('conflict_group'),
+    status: text('status').notNull().default('active'), // active | superseded | conflicted | rejected
+    context_tags_json: text('context_tags_json').notNull().default('[]'),
+
+    created_by: text('created_by').notNull().default('truth-ingestor-v1'),
+});
+
+export const truthSnapshots = sqliteTable('truth_snapshots', {
+    id: text('id').primaryKey(),
+    scope: text('scope').notNull().default('GLOBAL'), // e.g. GLOBAL, PROJECT_X
+    single_line_of_truth: text('single_line_of_truth').notNull(),
+    supporting_claim_ids_json: text('supporting_claim_ids_json').notNull().default('[]'),
+    conflicts_json: text('conflicts_json').notNull().default('[]'),
+    rationale: text('rationale'),
+    confidence: integer('confidence').notNull().default(50),
+    generated_by: text('generated_by').notNull().default('truth-resolver-v1'),
+    generated_at: text('generated_at').default(sql`CURRENT_TIMESTAMP`),
 });
