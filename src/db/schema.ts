@@ -54,6 +54,7 @@ export const claims = sqliteTable('claims', {
 export const truthSnapshots = sqliteTable('truth_snapshots', {
     id: text('id').primaryKey(),
     scope: text('scope').notNull().default('GLOBAL'), // e.g. GLOBAL, PROJECT_X
+    claim_key: text('claim_key').notNull().default('global.unknown'),
     single_line_of_truth: text('single_line_of_truth').notNull(),
     supporting_claim_ids_json: text('supporting_claim_ids_json').notNull().default('[]'),
     conflicts_json: text('conflicts_json').notNull().default('[]'),

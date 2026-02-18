@@ -59,6 +59,7 @@ export async function resolveTruthForClaimKey(input: ResolveTruthInput): Promise
     await db.insert(truthSnapshots).values({
         id: snapshotId,
         scope,
+        claim_key: input.claimKey,
         single_line_of_truth: singleLine,
         supporting_claim_ids_json: JSON.stringify(supportIds),
         conflicts_json: JSON.stringify(conflicts),
