@@ -13,9 +13,21 @@ async function main() {
     KillSwitch.resetLock('SECRET_ADMIN_KEY');
 
     // Reset mutable DB tables used by tests
-    db.run(sql`DELETE FROM identity_map`);
-    db.run(sql`DELETE FROM pii_types`);
-    db.run(sql`DELETE FROM data_mappings`);
+    // On fresh CI runs tables may not exist yet; tolerate that state.
+    const safeDelete = (statement: any) => {
+        try {
+            db.run(statement);
+        } catch (err) {
+            const msg = String(err);
+            if (!msg.includes('no such table')) {
+                throw err;
+            }
+        }
+    };
+
+    safeDelete(sql`DELETE FROM identity_map`);
+    safeDelete(sql`DELETE FROM pii_types`);
+    safeDelete(sql`DELETE FROM data_mappings`);
 
     // Reset any pending async approval state
     advancedHitl.pendingRequests.clear();
