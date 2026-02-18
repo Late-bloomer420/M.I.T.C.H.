@@ -3,6 +3,7 @@ import { RbacPolicy, UserContext } from '../lib/security/rbac_policy';
 async function testRbac() {
     console.log('--- 1. Setting Up Users ---');
     const adminUser: UserContext = { userId: 'Alice_Admin', role: 'ADMIN' };
+    const editorUser: UserContext = { userId: 'Eve_Editor', role: 'EDITOR' };
     const viewerUser: UserContext = { userId: 'Bob_Viewer', role: 'VIEWER' };
 
     console.log('\n--- 2. Valid Access (Admin -> Admin Context) ---');
@@ -29,7 +30,23 @@ async function testRbac() {
     }
     console.log('✅ ACCESS DENIED: Viewer cannot execute tools.');
 
-    console.log('\n--- 5. Default-Deny Check (Unknown Resource Scope) ---');
+    console.log('\n--- 5. Privilege Escalation Check (Editor -> ADMIN_OP) ---');
+    const editorCanAdminOp = await RbacPolicy.checkPermission(editorUser, 'ADMIN_OP', 'TOOL', 'security-console');
+    if (editorCanAdminOp) {
+        console.error('❌ FAILURE: Editor unexpectedly allowed ADMIN_OP.');
+        process.exit(1);
+    }
+    console.log('✅ ACCESS DENIED: Editor cannot perform ADMIN_OP.');
+
+    console.log('\n--- 6. Admin Operation Positive Check ---');
+    const adminCanAdminOp = await RbacPolicy.checkPermission(adminUser, 'ADMIN_OP', 'TOOL', 'security-console');
+    if (!adminCanAdminOp) {
+        console.error('❌ FAILURE: Admin should be allowed ADMIN_OP.');
+        process.exit(1);
+    }
+    console.log('✅ ACCESS GRANTED: Admin can perform ADMIN_OP.');
+
+    console.log('\n--- 7. Default-Deny Check (Unknown Resource Scope) ---');
     const canReadSystem = await RbacPolicy.checkPermission(viewerUser, 'READ', 'SYSTEM');
     if (canReadSystem) {
         console.error('❌ FAILURE: Viewer unexpectedly allowed to READ SYSTEM.');
