@@ -64,6 +64,32 @@ CREATE TABLE IF NOT EXISTS truth_snapshots (
   generated_by TEXT NOT NULL DEFAULT 'truth-resolver-v1',
   generated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS context_turns (
+  id TEXT PRIMARY KEY,
+  provider TEXT NOT NULL,
+  scope TEXT NOT NULL DEFAULT 'GLOBAL',
+  conversation_id TEXT NOT NULL,
+  message_id TEXT NOT NULL,
+  role TEXT NOT NULL,
+  text TEXT NOT NULL,
+  timestamp TEXT NOT NULL,
+  source_url TEXT,
+  meta_json TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(provider, conversation_id, message_id)
+);
+
+CREATE TABLE IF NOT EXISTS focus_tags (
+  id TEXT PRIMARY KEY,
+  scope TEXT NOT NULL DEFAULT 'GLOBAL',
+  target_type TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  tag TEXT NOT NULL,
+  note TEXT,
+  created_by TEXT NOT NULL DEFAULT 'user',
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
 `);
 
     // Backfill schema drift for existing local DBs

@@ -15,4 +15,7 @@ Context Core is a standalone service layer for cross-agent context building.
 - `GET /api/context/graph?scope=...`
 
 ## Current status
-Scaffold only. Handlers + persistence contracts included for fast iteration.
+v0 persistence enabled:
+- chat turn ingestion persisted in `context_turns`
+- focus tags persisted in `focus_tags`
+- feedback pack endpoint returns DB-backed focus anchors and latest truth/conflict summary

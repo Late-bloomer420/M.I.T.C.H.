@@ -63,3 +63,31 @@ export const truthSnapshots = sqliteTable('truth_snapshots', {
     generated_by: text('generated_by').notNull().default('truth-resolver-v1'),
     generated_at: text('generated_at').default(sql`CURRENT_TIMESTAMP`),
 });
+
+// Context Core persistence
+export const contextTurns = sqliteTable('context_turns', {
+    id: text('id').primaryKey(),
+    provider: text('provider').notNull(),
+    scope: text('scope').notNull().default('GLOBAL'),
+    conversation_id: text('conversation_id').notNull(),
+    message_id: text('message_id').notNull(),
+    role: text('role').notNull(),
+    text: text('text').notNull(),
+    timestamp: text('timestamp').notNull(),
+    source_url: text('source_url'),
+    meta_json: text('meta_json').notNull().default('{}'),
+    created_at: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+}, (t) => ({
+    unq: unique().on(t.provider, t.conversation_id, t.message_id),
+}));
+
+export const focusTags = sqliteTable('focus_tags', {
+    id: text('id').primaryKey(),
+    scope: text('scope').notNull().default('GLOBAL'),
+    target_type: text('target_type').notNull(), // claim | truth | turn
+    target_id: text('target_id').notNull(),
+    tag: text('tag').notNull(), // important | watch | ignore | verify
+    note: text('note'),
+    created_by: text('created_by').notNull().default('user'),
+    created_at: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+});
