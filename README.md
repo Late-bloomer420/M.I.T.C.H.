@@ -33,4 +33,10 @@ npm test
 ## Notes
 
 - Default test currently runs `src/test/setup.ts`.
+- Full suites:
+  - `npm run test:unit`
+  - `npm run test:integration`
+  - `npm run test:demo`
+  - `npm run test:all`
 - Resume context is tracked in `RESUME.md`.
+- Milestone changes are documented in `CHANGELOG.md`.
