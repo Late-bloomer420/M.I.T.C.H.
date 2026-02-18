@@ -34,6 +34,7 @@
     "ui:open": "powershell -NoProfile -Command \"Start-Process 'C:\\Users\\Lenovo\\.aaCoding\\M.I.T.C.H. OS (Multi-agent Identity & Trusted Channel Hub)\\src\\electron\\renderer\\index.html'\"",
     "ui:terminal": "npm run ui:open",
     "ui:mindmap": "powershell -NoProfile -Command \"Start-Process 'C:\\Users\\Lenovo\\.aaCoding\\M.I.T.C.H. OS (Multi-agent Identity & Trusted Channel Hub)\\src\\electron\\renderer\\mindmap_preview.html'\"",
+    "ui:workspace": "powershell -NoProfile -Command \"Start-Process 'C:\\Users\\Lenovo\\.aaCoding\\M.I.T.C.H. OS (Multi-agent Identity & Trusted Channel Hub)\\src\\electron\\renderer\\workspace.html'\"",
     "truth:show": "node ./node_modules/tsx/dist/cli.mjs ./src/cli/truth_cli.ts",
     "truth:graph": "node ./node_modules/tsx/dist/cli.mjs ./src/cli/truth_graph_cli.ts",
     "truth:import": "node ./node_modules/tsx/dist/cli.mjs ./src/cli/truth_import_cli.ts",

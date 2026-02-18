@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>M.I.T.C.H. Workspace</title>
+  <style>
+    :root {
+      --bg: #0f1724;
+      --panel: rgba(255,255,255,0.08);
+      --stroke: rgba(255,255,255,0.18);
+      --text: #eef4ff;
+      --sub: #afc1e6;
+      --accent: #7dd3fc;
+      --accent2: #a78bfa;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      height: 100vh;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      grid-template-rows: 1fr 280px;
+      grid-template-areas:
+        "left center"
+        "terminal terminal";
+      gap: 12px;
+      padding: 12px;
+      background: radial-gradient(circle at 8% 8%, #22345f, var(--bg) 40%);
+      color: var(--text);
+      font-family: Inter, -apple-system, BlinkMacSystemFont, 'SF Pro Text', Segoe UI, sans-serif;
+    }
+    .glass {
+      background: var(--panel);
+      border: 1px solid var(--stroke);
+      border-radius: 16px;
+      backdrop-filter: blur(14px) saturate(120%);
+      -webkit-backdrop-filter: blur(14px) saturate(120%);
+    }
+    #left { grid-area: left; padding: 14px; display:flex; flex-direction:column; }
+    #center { grid-area: center; padding: 14px; overflow:auto; }
+    #terminal { grid-area: terminal; padding: 10px; background:#05070d; border-radius:16px; border:1px solid #1f2a42; overflow:auto; }
+    h2 { margin: 0 0 8px; font-size: 1rem; }
+    .sub { color: var(--sub); font-size: 0.85rem; margin-bottom: 10px; }
+    .drop { border: 1.6px dashed rgba(125,211,252,0.7); border-radius: 12px; padding: 16px; text-align:center; color:var(--sub); margin-bottom:10px; }
+    .drop.over { background: rgba(125,211,252,0.12); color:#fff; }
+    textarea {
+      width:100%; min-height:100px; resize:vertical; border-radius:10px; border:1px solid var(--stroke);
+      background: rgba(255,255,255,0.07); color:var(--text); padding:10px; margin-bottom:10px;
+    }
+    .btn { border:none; border-radius:10px; padding:10px 12px; font-weight:700; cursor:pointer; }
+    .btn.primary { background: linear-gradient(135deg,var(--accent),var(--accent2)); color:#0b1020; }
+    .btn.secondary { background: rgba(255,255,255,0.12); color:var(--text); border:1px solid var(--stroke); }
+    .row { display:flex; gap:8px; }
+    .chips { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+    .chip { border:1px solid var(--stroke); border-radius:999px; padding:4px 9px; color:var(--sub); font-size:0.76rem; }
+    .node { border:1px solid var(--stroke); background:rgba(255,255,255,0.06); border-radius:12px; padding:10px; margin-bottom:8px; }
+    .k { color:var(--sub); font-size:0.78rem; }
+    .v { font-weight:600; }
+    .section { margin-top:10px; }
+    .terminal-line { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color:#d6e0ff; white-space:pre-wrap; }
+    #term-input { width:100%; margin-top:8px; border-radius:8px; border:1px solid #2a3757; background:#0b1020; color:#fff; padding:8px; }
+  </style>
+</head>
+<body>
+  <aside id="left" class="glass">
+    <h2>Data Input</h2>
+    <div class="sub">Drop files, paste text, and grow the shared knowledge graph.</div>
+    <div id="drop" class="drop">Drag & drop import payload or graph JSON</div>
+    <input id="picker" type="file" accept="application/json,.txt" style="display:none" />
+    <textarea id="paste" placeholder="Paste lines like: Alice is CEO"></textarea>
+    <div class="row">
+      <button id="ingest" class="btn primary">Ingest pasted text</button>
+      <button id="sample" class="btn secondary">Load sample</button>
+    </div>
+  </aside>
+
+  <main id="center" class="glass">
+    <h2>Information Graph</h2>
+    <div class="chips">
+      <span class="chip" id="scope">scope: MINDMAP</span>
+      <span class="chip" id="stats">nodes: 0 · edges: 0</span>
+    </div>
+
+    <div class="section">
+      <div class="k">Truth</div>
+      <div id="truth"></div>
+    </div>
+    <div class="section">
+      <div class="k">Claims</div>
+      <div id="claims"></div>
+    </div>
+    <div class="section">
+      <div class="k">Entities</div>
+      <div id="entities"></div>
+    </div>
+  </main>
+
+  <section id="terminal">
+    <div class="terminal-line">🛡️ M.I.T.C.H. terminal dock (always visible)</div>
+    <div class="terminal-line" id="term-log">Type commands or use Electron IPC terminal in full app runtime.</div>
+    <input id="term-input" placeholder="/panic, status, help ..." />
+  </section>
+
+<script>
+const drop = document.getElementById('drop');
+const picker = document.getElementById('picker');
+const ingestBtn = document.getElementById('ingest');
+const sampleBtn = document.getElementById('sample');
+const pasteEl = document.getElementById('paste');
+const statsEl = document.getElementById('stats');
+const truthEl = document.getElementById('truth');
+const claimsEl = document.getElementById('claims');
+const entitiesEl = document.getElementById('entities');
+const termLog = document.getElementById('term-log');
+const termInput = document.getElementById('term-input');
+
+let graph = { scope:'MINDMAP', nodes:[], edges:[] };
+
+function card(n){ return `<div class='node'><div class='v'>${n.label}</div><div class='k'>${n.id}</div></div>`; }
+
+function render(){
+  const nodes = graph.nodes || []; const edges = graph.edges || [];
+  statsEl.textContent = `nodes: ${nodes.length} · edges: ${edges.length}`;
+  truthEl.innerHTML = nodes.filter(n=>n.type==='truth').map(card).join('') || '<div class="k">No truth nodes yet</div>';
+  claimsEl.innerHTML = nodes.filter(n=>n.type==='claim').map(card).join('') || '<div class="k">No claim nodes yet</div>';
+  entitiesEl.innerHTML = nodes.filter(n=>n.type==='entity').map(card).join('') || '<div class="k">No entity nodes yet</div>';
+}
+
+function addClaimFromLine(line){
+  const m = line.match(/^(.+)\sis\s(.+)$/i); if(!m) return;
+  const subject = m[1].trim(); const object = m[2].trim();
+  const claimId = `claim:local-${Math.random().toString(36).slice(2,8)}`;
+  const truthId = `truth:local-${Math.random().toString(36).slice(2,8)}`;
+  const subId = `entity:${subject}`; const objId = `entity:${object}`;
+
+  if(!graph.nodes.find(n=>n.id===subId)) graph.nodes.push({id:subId,type:'entity',label:subject});
+  if(!graph.nodes.find(n=>n.id===objId)) graph.nodes.push({id:objId,type:'entity',label:object});
+  graph.nodes.push({id:claimId,type:'claim',label:`${subject} is ${object}`});
+  graph.nodes.push({id:truthId,type:'truth',label:`${subject} is ${object}`});
+
+  graph.edges.push({id:`e:${claimId}:${truthId}`,from:claimId,to:truthId,type:'supports'});
+  graph.edges.push({id:`e:${subId}:${claimId}`,from:subId,to:claimId,type:'about'});
+  graph.edges.push({id:`e:${claimId}:${objId}`,from:claimId,to:objId,type:'about'});
+}
+
+ingestBtn.addEventListener('click', ()=>{
+  const lines = pasteEl.value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  lines.forEach(addClaimFromLine);
+  termLog.textContent = `Ingested ${lines.length} line(s) into local graph preview.`;
+  render();
+});
+
+sampleBtn.addEventListener('click', ()=>{
+  graph = { scope:'MINDMAP', nodes:[], edges:[] };
+  ['Alice is CEO','Roadmap is stable'].forEach(addClaimFromLine);
+  termLog.textContent = 'Loaded sample data.';
+  render();
+});
+
+['dragenter','dragover'].forEach(evt=>drop.addEventListener(evt,e=>{e.preventDefault();drop.classList.add('over');}));
+['dragleave','drop'].forEach(evt=>drop.addEventListener(evt,e=>{e.preventDefault();drop.classList.remove('over');}));
+drop.addEventListener('drop', async e=>{
+  const f=e.dataTransfer.files[0]; if(!f) return;
+  const txt = await f.text();
+  try {
+    const data = JSON.parse(txt);
+    if(data.nodes && data.edges){ graph = data; render(); termLog.textContent = `Loaded graph JSON from ${f.name}`; return; }
+  } catch {}
+  txt.split(/\r?\n/).forEach(addClaimFromLine);
+  render();
+  termLog.textContent = `Loaded text from ${f.name}`;
+});
+
+drop.addEventListener('click',()=>picker.click());
+picker.addEventListener('change', async ()=>{
+  const f = picker.files[0]; if(!f) return;
+  const txt = await f.text();
+  txt.split(/\r?\n/).forEach(addClaimFromLine);
+  render();
+  termLog.textContent = `Loaded from picker: ${f.name}`;
+});
+
+termInput.addEventListener('keydown', e=>{
+  if(e.key==='Enter'){
+    const v = termInput.value.trim();
+    if(v) termLog.textContent = `Command queued: ${v}`;
+    termInput.value='';
+  }
+});
+
+render();
+</script>
+</body>
+</html>
