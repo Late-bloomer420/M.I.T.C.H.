@@ -28,6 +28,8 @@ async function main() {
     safeDelete(sql`DELETE FROM identity_map`);
     safeDelete(sql`DELETE FROM pii_types`);
     safeDelete(sql`DELETE FROM data_mappings`);
+    safeDelete(sql`DELETE FROM claims`);
+    safeDelete(sql`DELETE FROM truth_snapshots`);
 
     // Reset any pending async approval state
     advancedHitl.pendingRequests.clear();
