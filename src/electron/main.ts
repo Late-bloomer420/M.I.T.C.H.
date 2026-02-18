@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import * as path from 'path';
 import { MitchChat, IOInterface } from '../cli/mitch_chat';
 import { KillSwitch } from '../lib/security/killswitch';
+import { IPC_CHANNELS, SystemLockPayload } from './ipc';
 
 // ELECTRON MAIN PROCESS (THE KERNEL)
 // This is the "Trusted Zone". It holds the keys, the DB, and the Kill-Switch.
@@ -15,28 +16,31 @@ function createTrustedWindow() {
         width: 1000,
         height: 700,
         webPreferences: {
-            nodeIntegration: false, // SECURITY: No Node in Renderer
-            contextIsolation: true, // SECURITY: Bridge Isolation
+            nodeIntegration: false,
+            contextIsolation: true,
             preload: path.join(__dirname, 'preload.js'),
-            sandbox: true           // SECURITY: OS Sandboxing
+            sandbox: true
         }
     });
 
-    // Load the "Dumb" UI
     mainWindow.loadFile(path.join(__dirname, 'renderer/index.html'));
 
-    // Initialize Mitch Secure Chat (Kernel Logic)
     const ipcIO: IOInterface = {
         input: (handler) => {
-            // Listen to IPC from Renderer
-            ipcMain.on('terminal-input', (event, text) => {
-                handler(text);
+            ipcMain.on(IPC_CHANNELS.terminalInput, async (_event, text: string) => {
+                try {
+                    await handler(text);
+                } catch (err) {
+                    const message = err instanceof Error ? err.message : String(err);
+                    if (mainWindow && !mainWindow.isDestroyed()) {
+                        mainWindow.webContents.send(IPC_CHANNELS.terminalError, message);
+                    }
+                }
             });
         },
         output: (text) => {
-            // Send back to Renderer
             if (mainWindow && !mainWindow.isDestroyed()) {
-                mainWindow.webContents.send('terminal-output', text);
+                mainWindow.webContents.send(IPC_CHANNELS.terminalOutput, text);
             }
         },
         close: () => {
@@ -44,13 +48,13 @@ function createTrustedWindow() {
         }
     };
 
-    chatInstance = new MitchChat({ userId: "Electron_User", role: "ADMIN" }, ipcIO);
+    chatInstance = new MitchChat({ userId: 'Electron_User', role: 'ADMIN' }, ipcIO);
     chatInstance.start();
 
-    // Safety Net: Monitor Kill-Switch
     setInterval(() => {
-        if (KillSwitch.isLocked && mainWindow) {
-            mainWindow.webContents.send('system-lock', { reason: "Kill-Switch Engaged" });
+        if (KillSwitch.isLocked && mainWindow && !mainWindow.isDestroyed()) {
+            const payload: SystemLockPayload = { reason: 'Kill-Switch Engaged' };
+            mainWindow.webContents.send(IPC_CHANNELS.systemLock, payload);
         }
     }, 1000);
 }
