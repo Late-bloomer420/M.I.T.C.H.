@@ -65,7 +65,7 @@
 <body>
   <aside id="left" class="glass">
     <h2>Data Input</h2>
-    <div class="sub">Drop files, paste text, and grow the shared knowledge graph.</div>
+    <div class="sub">Drop files, paste text, and grow the shared knowledge graph (live backend).</div>
     <div id="drop" class="drop">Drag & drop import payload or graph JSON</div>
     <input id="picker" type="file" accept="application/json,.txt" style="display:none" />
     <textarea id="paste" placeholder="Paste lines like: Alice is CEO"></textarea>
@@ -103,6 +103,7 @@
   </section>
 
 <script>
+const API = 'http://127.0.0.1:4317';
 const drop = document.getElementById('drop');
 const picker = document.getElementById('picker');
 const ingestBtn = document.getElementById('ingest');
@@ -127,35 +128,33 @@ function render(){
   entitiesEl.innerHTML = nodes.filter(n=>n.type==='entity').map(card).join('') || '<div class="k">No entity nodes yet</div>';
 }
 
-function addClaimFromLine(line){
-  const m = line.match(/^(.+)\sis\s(.+)$/i); if(!m) return;
-  const subject = m[1].trim(); const object = m[2].trim();
-  const claimId = `claim:local-${Math.random().toString(36).slice(2,8)}`;
-  const truthId = `truth:local-${Math.random().toString(36).slice(2,8)}`;
-  const subId = `entity:${subject}`; const objId = `entity:${object}`;
-
-  if(!graph.nodes.find(n=>n.id===subId)) graph.nodes.push({id:subId,type:'entity',label:subject});
-  if(!graph.nodes.find(n=>n.id===objId)) graph.nodes.push({id:objId,type:'entity',label:object});
-  graph.nodes.push({id:claimId,type:'claim',label:`${subject} is ${object}`});
-  graph.nodes.push({id:truthId,type:'truth',label:`${subject} is ${object}`});
-
-  graph.edges.push({id:`e:${claimId}:${truthId}`,from:claimId,to:truthId,type:'supports'});
-  graph.edges.push({id:`e:${subId}:${claimId}`,from:subId,to:claimId,type:'about'});
-  graph.edges.push({id:`e:${claimId}:${objId}`,from:claimId,to:objId,type:'about'});
+async function refreshGraph(){
+  const r = await fetch(`${API}/api/graph?scope=MINDMAP`);
+  const j = await r.json();
+  if(j.ok && j.graph){ graph = j.graph; render(); }
 }
 
-ingestBtn.addEventListener('click', ()=>{
-  const lines = pasteEl.value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
-  lines.forEach(addClaimFromLine);
-  termLog.textContent = `Ingested ${lines.length} line(s) into local graph preview.`;
+async function ingestText(text, sourceId='workspace:paste'){
+  const r = await fetch(`${API}/api/import`, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ scope:'MINDMAP', text, sourceId })
+  });
+  const j = await r.json();
+  if(!j.ok){ termLog.textContent = `Import failed: ${j.error || 'unknown error'}`; return; }
+  graph = j.graph || graph;
   render();
+  termLog.textContent = `Imported ${j.lines} line(s), inserted ${j.inserted} claim(s), resolved ${j.resolved} key(s).`;
+}
+
+ingestBtn.addEventListener('click', async ()=>{
+  const text = pasteEl.value.trim();
+  if(!text){ termLog.textContent = 'Nothing to ingest.'; return; }
+  await ingestText(text, 'workspace:paste');
 });
 
-sampleBtn.addEventListener('click', ()=>{
-  graph = { scope:'MINDMAP', nodes:[], edges:[] };
-  ['Alice is CEO','Roadmap is stable'].forEach(addClaimFromLine);
-  termLog.textContent = 'Loaded sample data.';
-  render();
+sampleBtn.addEventListener('click', async ()=>{
+  await ingestText('Alice is CEO\nRoadmap is stable', 'workspace:sample');
 });
 
 ['dragenter','dragover'].forEach(evt=>drop.addEventListener(evt,e=>{e.preventDefault();drop.classList.add('over');}));
@@ -165,31 +164,35 @@ drop.addEventListener('drop', async e=>{
   const txt = await f.text();
   try {
     const data = JSON.parse(txt);
-    if(data.nodes && data.edges){ graph = data; render(); termLog.textContent = `Loaded graph JSON from ${f.name}`; return; }
+    if (Array.isArray(data.nodes) && Array.isArray(data.edges)) {
+      graph = data; render(); termLog.textContent = `Loaded graph JSON from ${f.name}`; return;
+    }
+    if (Array.isArray(data.items)) {
+      const lines = data.items.map(i => i.text || '').join('\n');
+      await ingestText(lines, `workspace:file:${f.name}`);
+      return;
+    }
   } catch {}
-  txt.split(/\r?\n/).forEach(addClaimFromLine);
-  render();
-  termLog.textContent = `Loaded text from ${f.name}`;
+  await ingestText(txt, `workspace:file:${f.name}`);
 });
 
 drop.addEventListener('click',()=>picker.click());
 picker.addEventListener('change', async ()=>{
   const f = picker.files[0]; if(!f) return;
   const txt = await f.text();
-  txt.split(/\r?\n/).forEach(addClaimFromLine);
-  render();
-  termLog.textContent = `Loaded from picker: ${f.name}`;
+  await ingestText(txt, `workspace:file:${f.name}`);
 });
 
-termInput.addEventListener('keydown', e=>{
+termInput.addEventListener('keydown', async e=>{
   if(e.key==='Enter'){
     const v = termInput.value.trim();
-    if(v) termLog.textContent = `Command queued: ${v}`;
+    if(v === 'refresh') await refreshGraph();
+    else if(v) termLog.textContent = `Command queued: ${v}`;
     termInput.value='';
   }
 });
 
-render();
+refreshGraph().catch(()=>{ termLog.textContent = 'Workspace server offline. Start with: npm run ui:workspace:live'; render(); });
 </script>
 </body>
 </html>
