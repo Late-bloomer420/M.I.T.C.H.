@@ -53,7 +53,7 @@ function createTrustedWindow() {
 
     setInterval(() => {
         if (KillSwitch.isLocked && mainWindow && !mainWindow.isDestroyed()) {
-            const payload: SystemLockPayload = { reason: 'Kill-Switch Engaged' };
+            const payload: SystemLockPayload = { reason: KillSwitch.lastReason || 'Kill-Switch Engaged' };
             mainWindow.webContents.send(IPC_CHANNELS.systemLock, payload);
         }
     }, 1000);

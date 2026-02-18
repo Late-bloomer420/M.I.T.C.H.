@@ -53,7 +53,8 @@ window.miTch.onOutput((text: string) => {
 });
 
 window.miTch.onError((message: string) => {
-    appendLine(`[Kernel Error] ${message}`, '#ff6b6b');
+    const at = new Date().toLocaleTimeString();
+    appendLine(`[Kernel Error ${at}] ${message}`, '#ff6b6b');
 });
 
 window.miTch.onLock((reason: string) => {
