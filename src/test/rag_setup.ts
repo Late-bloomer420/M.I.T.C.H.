@@ -14,7 +14,10 @@ async function main() {
     // In a real system, the Python service would have indexed "John Doe is the CEO" as "[PER_1] is the CEO".
     // Our mock Orchestrator simulates retrieving that masked snippet.
 
-    const injectedContext = await orchestrator.retrieveAndInject(userQuery, 'GLOBAL');
+    const injectedContext = await orchestrator.retrieveAndInject(userQuery, 'GLOBAL', {
+        userId: 'user_viewer_01',
+        role: 'VIEWER'
+    });
 
     console.log('--- Injected Context Block ---');
     console.log(injectedContext);

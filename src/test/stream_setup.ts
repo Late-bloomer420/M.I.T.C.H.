@@ -2,8 +2,8 @@ import { StreamDemasker } from '../lib/streaming/demasker';
 import { IdentityVault } from '../lib/pii/mapper';
 import { db } from '../db';
 import { identityMap } from '../db/schema';
+import { eq } from 'drizzle-orm';
 import { encrypt, hash } from '../lib/crypto';
-import crypto from 'node:crypto';
 
 async function main() {
     console.log('--- Starting Streaming Demasker Verification ---');
@@ -14,13 +14,14 @@ async function main() {
 
     // Manually insert for deterministic testing
     const contentHash = hash(realName);
+    await db.delete(identityMap).where(eq(identityMap.token_id, token));
     await db.insert(identityMap).values({
         token_id: token,
         encrypted_real_value: encrypt(realName),
         content_hash: contentHash,
         context_prefix: "GLOBAL",
         entity_type: "MANAGER"
-    }).onConflictDoNothing(); // Prevent error if run multiple times
+    });
 
     // 2. Test Streaming Logic
     const demasker = new StreamDemasker();

@@ -1,10 +1,23 @@
-import { MitchChat } from '../cli/mitch_chat';
+import { MitchChat, IOInterface } from '../cli/mitch_chat';
 import { KillSwitch } from '../lib/security/killswitch';
 
 // Simulate interactive chat without blocking readline
 async function testChat() {
     console.log("--- Initializing Secure Chat Wrapper ---");
-    const chat = new MitchChat({ userId: "Test_User", role: "ADMIN" });
+
+    const outputs: string[] = [];
+    const io: IOInterface = {
+        input: () => { /* not used in this test */ },
+        output: (text: string) => {
+            outputs.push(text);
+            console.log(text);
+        },
+        close: () => {
+            console.log('[IO] closed');
+        }
+    };
+
+    const chat = new MitchChat({ userId: "Test_User", role: "ADMIN" }, io);
 
     // We bypass the readline loop and call handleInput directly for testing
 
@@ -23,13 +36,20 @@ async function testChat() {
         console.log("✅ Kill-Switch successfully engaged via Terminal.");
     } else {
         console.error("❌ Kill-Switch FAILED to engage.");
+        process.exit(1);
     }
 
     console.log("\n--- Test 4: Verify Lockout ---");
-    // Try to send another command
-    if (KillSwitch.isLocked) {
-        console.log("Terminal correctly refuses input (simulated).");
+    await chat.handleInput("should be blocked");
+
+    const hadMaskOutput = outputs.some((o) => o.includes('[Shield] Masked PII'));
+    if (!hadMaskOutput) {
+        console.error('❌ FAILURE: Expected masked output not found.');
+        process.exit(1);
     }
 }
 
-testChat();
+testChat().catch((err) => {
+    console.error(err);
+    process.exit(1);
+});

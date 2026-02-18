@@ -1,5 +1,5 @@
 import { ToolExecutor } from '../lib/sandbox/runtime';
-import { hitl } from '../lib/validation/hitl';
+import { advancedHitl } from '../lib/validation/advanced_hitl';
 import { ToolManifest } from '../lib/sandbox/manifest';
 
 async function main() {
@@ -22,7 +22,7 @@ async function main() {
 
     // 2. Test LOW Risk (Auto-Approve)
     console.log('Test 1: Low Risk Tool...');
-    const executor1 = new ToolExecutor(benignManifest);
+    const executor1 = new ToolExecutor(benignManifest, 'ADMIN');
     const result1 = await executor1.execute("mock.wasm", "1+1");
     console.log(`Result: ${result1}`);
     if (result1.includes("Success")) {
@@ -31,17 +31,17 @@ async function main() {
 
     // 3. Test HIGH Risk (HITL Trigger)
     console.log('Test 2: High Risk Tool (Expect Approval Wait)...');
-    const executor2 = new ToolExecutor(riskyManifest);
+    const executor2 = new ToolExecutor(riskyManifest, 'VIEWER');
 
     // Start execution (will hang waiting for approval)
     const executionPromise = executor2.execute("mock.wasm", "send_mail");
 
     // Simulate User Approval after 1 second
     setTimeout(() => {
-        const pendingId = hitl.getPendingIdForTool("email-sender");
-        if (pendingId) {
-            console.log(`[User] Approving request: ${pendingId}`);
-            hitl.approveRequest(pendingId);
+        const pending = advancedHitl.getPendingRequests().find((r) => r.toolName === "email-sender");
+        if (pending) {
+            console.log(`[User] Approving request: ${pending.id}`);
+            advancedHitl.approveRequest(pending.id, pending.nonce);
         } else {
             console.error("❌ FAILURE: No pending request found via HITL!");
         }

@@ -1,7 +1,7 @@
 import { ContextOrchestrator } from '../lib/rag/orchestrator';
 import { ToolExecutor } from '../lib/sandbox/runtime';
 import { ToolManifest } from '../lib/sandbox/manifest';
-import { hitl } from '../lib/validation/hitl';
+import { advancedHitl } from '../lib/validation/advanced_hitl';
 import { KillSwitch } from '../lib/security/killswitch';
 
 // --- THE ANTIGRAVITY END-TO-END DEMO ---
@@ -19,14 +19,17 @@ async function main() {
         permissions: { network: true, filesystem: false, env_vars: [] },
         risk_level: "HIGH"
     };
-    const emailTool = new ToolExecutor(emailToolManifest);
+    const emailTool = new ToolExecutor(emailToolManifest, 'VIEWER');
 
     // 2. Scenario Step 1: User Query (RAG Injection)
     console.log('--- Step 1: Context Injection (Air-Gapped RAG) ---');
     const userQuery = "Schreib eine E-Mail an den CEO über das NDU-Kolloquium.";
     console.log(`User: "${userQuery}"`);
 
-    const context = await orchestrator.retrieveAndInject(userQuery, 'NDU_DEMO');
+    const context = await orchestrator.retrieveAndInject(userQuery, 'NDU_DEMO', {
+        userId: 'ndu_operator',
+        role: 'EDITOR'
+    });
     console.log(`System: Injected Context:\n${context}`);
 
     // 3. Scenario Step 2: Agent Action (Tool Call)
@@ -39,11 +42,11 @@ async function main() {
     // 4. Scenario Step 3: HITL Gate
     setTimeout(() => {
         console.log('\n--- Step 3: Human-in-the-Loop (HITL) ---');
-        const pendingId = hitl.getPendingIdForTool("email-sender");
-        if (pendingId) {
+        const pending = advancedHitl.getPendingRequests().find((r) => r.toolName === 'email-sender');
+        if (pending) {
             console.log(`[Dashboard] 🔒 High Risk Action Detected: email-sender`);
             console.log(`[User] >> CLICK >> [APPROVE]`);
-            hitl.approveRequest(pendingId);
+            advancedHitl.approveRequest(pending.id, pending.nonce);
         }
     }, 1000);
 

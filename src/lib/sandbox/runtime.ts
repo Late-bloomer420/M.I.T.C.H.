@@ -5,9 +5,11 @@ import { KillSwitch } from '../security/killswitch';
 
 export class ToolExecutor {
     private manifest: ToolManifest;
+    private userRole: 'ADMIN' | 'EDITOR' | 'VIEWER';
 
-    constructor(manifest: ToolManifest) {
+    constructor(manifest: ToolManifest, userRole: 'ADMIN' | 'EDITOR' | 'VIEWER' = 'VIEWER') {
         this.manifest = manifest;
+        this.userRole = userRole;
     }
 
     async execute(wasmUrlOrPath: string, input: string): Promise<string> {
@@ -17,14 +19,13 @@ export class ToolExecutor {
         }
 
         // 1. HITL Gate (Advanced)
-        // In a real app, userRole would come from the context. For now, we simulate 'VIEWER'.
-        const userRole = 'VIEWER';
+        // userRole should come from caller/session context.
         const reason = `Tool ${this.manifest.name} requires ${this.manifest.risk_level} execution privileges.`;
 
         const approved = await advancedHitl.requestApproval(
             this.manifest.name,
             this.manifest.risk_level,
-            userRole,
+            this.userRole,
             reason
         );
 

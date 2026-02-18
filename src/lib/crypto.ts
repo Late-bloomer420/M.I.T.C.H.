@@ -2,7 +2,8 @@ import crypto from 'node:crypto';
 
 // In a real app, these should be environment variables
 const ALGORITHM = 'aes-256-cbc';
-const SECRET_KEY = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex'); // 32 bytes for AES-256
+const DEFAULT_SECRET_KEY_HEX = '00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff';
+const SECRET_KEY = process.env.ENCRYPTION_KEY || DEFAULT_SECRET_KEY_HEX; // 32 bytes for AES-256
 const IV_LENGTH = 16; // AES block size
 
 const key = Buffer.from(SECRET_KEY, 'hex');
