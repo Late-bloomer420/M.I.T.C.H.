@@ -6,6 +6,7 @@
   "scripts": {
     "test": "npm run test:setup",
     "test:setup": "node ./node_modules/tsx/dist/cli.mjs ./src/test/setup.ts",
+    "test:reset": "node ./node_modules/tsx/dist/cli.mjs ./src/test/reset_state.ts",
     "test:audit": "node ./node_modules/tsx/dist/cli.mjs ./src/test/audit_setup.ts",
     "test:hitl": "node ./node_modules/tsx/dist/cli.mjs ./src/test/hitl_setup.ts",
     "test:intent": "node ./node_modules/tsx/dist/cli.mjs ./src/test/intent_setup.ts",
@@ -18,7 +19,7 @@
     "test:electron": "node ./node_modules/tsx/dist/cli.mjs ./src/test/electron_setup.ts",
     "test:chat": "node ./node_modules/tsx/dist/cli.mjs ./src/test/chat_simulation.ts",
     "test:final": "node ./node_modules/tsx/dist/cli.mjs ./src/test/final_loop.ts",
-    "test:setup-suite": "npm run test:setup && npm run test:audit && npm run test:hitl && npm run test:intent && npm run test:rag && npm run test:rbac && npm run test:sandbox && npm run test:stream && npm run test:token && npm run test:tpm",
+    "test:setup-suite": "npm run test:reset && npm run test:setup && npm run test:audit && npm run test:hitl && npm run test:intent && npm run test:rag && npm run test:rbac && npm run test:sandbox && npm run test:stream && npm run test:token && npm run test:tpm",
     "test:demo": "npm run test:electron && npm run test:chat && npm run test:final",
     "test:all": "npm run test:setup-suite && npm run test:demo",
     "db:generate": "drizzle-kit generate",
