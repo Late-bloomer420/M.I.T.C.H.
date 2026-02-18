@@ -38,6 +38,7 @@
     "ui:workspace": "powershell -NoProfile -Command \"Start-Process 'C:\\Users\\Lenovo\\.aaCoding\\M.I.T.C.H. OS (Multi-agent Identity & Trusted Channel Hub)\\src\\electron\\renderer\\workspace.html'\"",
     "ui:workspace:server": "node ./node_modules/tsx/dist/cli.mjs ./src/server/workspace_server.ts",
     "ui:workspace:live": "powershell -NoProfile -Command \"Start-Process 'http://127.0.0.1:4317'; node ./node_modules/tsx/dist/cli.mjs ./src/server/workspace_server.ts\"",
+    "context-core:open": "powershell -NoProfile -Command \"Start-Process 'http://127.0.0.1:4321/api/context/feedback-pack?scope=MINDMAP'\"",
     "truth:show": "node ./node_modules/tsx/dist/cli.mjs ./src/cli/truth_cli.ts",
     "truth:graph": "node ./node_modules/tsx/dist/cli.mjs ./src/cli/truth_graph_cli.ts",
     "truth:import": "node ./node_modules/tsx/dist/cli.mjs ./src/cli/truth_import_cli.ts",

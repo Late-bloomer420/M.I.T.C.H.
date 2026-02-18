@@ -97,6 +97,11 @@
       <div class="k">Entities</div>
       <div id="entities"></div>
     </div>
+
+    <div class="section">
+      <div class="k">Feedback Pack (model-ready)</div>
+      <div id="pack" class="node"><div class="k">No pack yet</div></div>
+    </div>
   </main>
 
   <section id="terminal">
@@ -117,6 +122,7 @@ const statsEl = document.getElementById('stats');
 const truthEl = document.getElementById('truth');
 const claimsEl = document.getElementById('claims');
 const entitiesEl = document.getElementById('entities');
+const packEl = document.getElementById('pack');
 const termLog = document.getElementById('term-log');
 const termInput = document.getElementById('term-input');
 
@@ -132,10 +138,32 @@ function render(){
   entitiesEl.innerHTML = nodes.filter(n=>n.type==='entity').map(card).join('') || '<div class="k">No entity nodes yet</div>';
 }
 
+function renderPack(pack){
+  if(!pack){
+    packEl.innerHTML = '<div class="k">No pack yet</div>';
+    return;
+  }
+  const list = (arr)=> (arr && arr.length) ? `<ul>${arr.map(x=>`<li>${x}</li>`).join('')}</ul>` : '<div class="k">none</div>';
+  packEl.innerHTML = `
+    <div class='v'>scope: ${pack.scope}</div>
+    <div class='k'>generated: ${pack.generatedAt}</div>
+    <div class='k' style='margin-top:6px;'>stable truths</div>${list(pack.stableTruths)}
+    <div class='k' style='margin-top:6px;'>key deltas</div>${list(pack.keyDeltas)}
+    <div class='k' style='margin-top:6px;'>unresolved conflicts</div>${list(pack.unresolvedConflicts)}
+    <div class='k' style='margin-top:6px;'>focus anchors</div>${list(pack.focusAnchors)}
+  `;
+}
+
 async function refreshGraph(){
   const r = await fetch(`${API}/api/graph?scope=MINDMAP`);
   const j = await r.json();
   if(j.ok && j.graph){ graph = j.graph; render(); }
+}
+
+async function refreshPack(){
+  const r = await fetch(`http://127.0.0.1:4321/api/context/feedback-pack?scope=MINDMAP`);
+  const j = await r.json();
+  if(j.ok && j.pack) renderPack(j.pack);
 }
 
 async function ingestText(text, sourceId='workspace:paste'){
@@ -148,6 +176,7 @@ async function ingestText(text, sourceId='workspace:paste'){
   if(!j.ok){ termLog.textContent = `Import failed: ${j.error || 'unknown error'}`; return; }
   graph = j.graph || graph;
   render();
+  await refreshPack().catch(()=>{});
   termLog.textContent = `Imported ${j.lines} line(s), inserted ${j.inserted} claim(s), resolved ${j.resolved} key(s).`;
 }
 
@@ -170,6 +199,7 @@ markImportantBtn.addEventListener('click', async ()=>{
     body: JSON.stringify({ scope:'MINDMAP', targetType:'truth', targetId: latestTruth.id, tag:'important', note:'marked from workspace' })
   });
   const j = await r.json();
+  if (j.ok) await refreshPack().catch(()=>{});
   termLog.textContent = j.ok ? `Focus tag added for ${latestTruth.id}` : `Focus tag failed: ${j.error || 'unknown'}`;
 });
 
@@ -208,7 +238,11 @@ termInput.addEventListener('keydown', async e=>{
   }
 });
 
-refreshGraph().catch(()=>{ termLog.textContent = 'Workspace server offline. Start with: npm run ui:workspace:live'; render(); });
+Promise.all([refreshGraph(), refreshPack()]).catch(()=>{
+  termLog.textContent = 'Workspace or Context Core server offline. Start with: npm run ui:workspace:live and npm run context-core:start';
+  render();
+  renderPack(null);
+});
 </script>
 </body>
 </html>
