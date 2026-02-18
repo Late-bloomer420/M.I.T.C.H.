@@ -14,7 +14,7 @@ async function main() {
                 sourceType: 'text',
                 sourceId: 'drop/file-a.txt',
                 text: 'Vision is clear\nAlice is Founder',
-                contextTags: ['drop', 'apple-inspired-ui'],
+                contextTags: ['drop', 'modern-ui'],
             },
             {
                 sourceType: 'transcript',
