@@ -40,6 +40,7 @@
     "truth:show": "node ./node_modules/tsx/dist/cli.mjs ./src/cli/truth_cli.ts",
     "truth:graph": "node ./node_modules/tsx/dist/cli.mjs ./src/cli/truth_graph_cli.ts",
     "truth:import": "node ./node_modules/tsx/dist/cli.mjs ./src/cli/truth_import_cli.ts",
+    "context-core:start": "node ./node_modules/tsx/dist/cli.mjs ./src/context-core/server.ts",
     "db:generate": "node ./node_modules/drizzle-kit/bin.cjs generate:sqlite",
     "db:migrate": "node ./node_modules/drizzle-kit/bin.cjs push:sqlite"
   },
