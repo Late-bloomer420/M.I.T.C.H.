@@ -3,6 +3,7 @@ import path from 'node:path';
 import { db } from '../db';
 import { sql } from 'drizzle-orm';
 import { KillSwitch } from '../lib/security/killswitch';
+import { advancedHitl } from '../lib/validation/advanced_hitl';
 
 async function main() {
     const repoRoot = path.resolve(__dirname, '../..');
@@ -15,6 +16,9 @@ async function main() {
     db.run(sql`DELETE FROM identity_map`);
     db.run(sql`DELETE FROM pii_types`);
     db.run(sql`DELETE FROM data_mappings`);
+
+    // Reset any pending async approval state
+    advancedHitl.pendingRequests.clear();
 
     // Reset audit log file between runs
     if (fs.existsSync(auditPath)) {
