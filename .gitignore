@@ -1,5 +1,7 @@
 node_modules/
 .qodo/
+__pycache__/
+*.pyc
 *.log
 *.tmp
 *.swp
