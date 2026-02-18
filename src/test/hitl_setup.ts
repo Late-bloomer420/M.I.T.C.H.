@@ -41,6 +41,36 @@ async function testAdvancedHitl() {
     }
 
     console.log('✅ Async action approved via dashboard simulation.');
+
+    console.log('\n--- 3. Replay/Invalid Nonce Defense ---');
+    const attackPromise = advancedHitl.requestApproval(
+        'wire-transfer',
+        'HIGH',
+        'VIEWER',
+        'Attempt unauthorized transfer'
+    );
+
+    const attackReq = advancedHitl.getPendingRequests().find((r) => r.toolName === 'wire-transfer');
+    if (!attackReq) {
+        console.error('❌ FAILURE: Missing pending request for invalid nonce test.');
+        process.exit(1);
+    }
+
+    const accepted = advancedHitl.approveRequest(attackReq.id, 'bad_nonce_value');
+    if (accepted) {
+        console.error('❌ FAILURE: Invalid nonce was incorrectly accepted.');
+        process.exit(1);
+    }
+
+    // Cleanup pending request path so promise resolves deterministically.
+    advancedHitl.denyRequest(attackReq.id);
+    const deniedResult = await attackPromise;
+    if (deniedResult) {
+        console.error('❌ FAILURE: Invalid nonce flow should end denied.');
+        process.exit(1);
+    }
+
+    console.log('✅ Invalid nonce correctly rejected and request denied.');
     console.log('\n✅ HITL test completed cleanly.');
 }
 
