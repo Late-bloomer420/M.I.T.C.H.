@@ -73,7 +73,7 @@ def extract_token_ids(masked_text: str) -> str:
     the identity map reference so ChromaDB entries can be traced back to the
     IdentityVault rows that hold the encrypted real values.
     """
-    tokens = re.findall(r'\[([A-Z]{2,3}_[a-zA-Z0-9]+)\]', masked_text)
+    tokens = re.findall(r'(\[[A-Z]{2,3}_[a-zA-Z0-9]+\])', masked_text)
     return ",".join(tokens) if tokens else ""
 
 class MemoryItem(BaseModel):
