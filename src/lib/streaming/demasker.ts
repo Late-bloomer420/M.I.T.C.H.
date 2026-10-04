@@ -1,3 +1,10 @@
+/**
+ * Stateful streaming token demasker — replaces PII tokens in live AI output chunks.
+ * Solves the token boundary problem: a token like [PER_a1b2] may be split across
+ * chunk boundaries. The buffer holds partial tokens until ] arrives or the buffer
+ * exceeds MAX_BUFFER_SIZE (32 bytes), at which point it is not a token and is flushed.
+ * See docs/SECURITY_REFERENCE.md §"Streaming Demasker".
+ */
 import { IdentityVault } from '../pii/mapper';
 
 export class StreamDemasker {

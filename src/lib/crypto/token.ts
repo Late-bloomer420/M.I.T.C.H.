@@ -1,3 +1,10 @@
+/**
+ * Short-lived, scoped bearer tokens for agent-to-tool authorization.
+ * Format: Base64(agentId:toolName:timestamp).HMAC-SHA256(payload).
+ * TTL: 60 seconds. Verification uses crypto.timingSafeEqual to prevent
+ * timing-based signature oracle attacks (CWE-208).
+ * See docs/SECURITY_REFERENCE.md §"Tool Token".
+ */
 import crypto from 'node:crypto';
 
 // In production, this secret key should be distinct from the vault key

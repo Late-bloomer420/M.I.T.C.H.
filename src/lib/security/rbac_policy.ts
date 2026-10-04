@@ -1,3 +1,10 @@
+/**
+ * Role-Based Access Control policy (NIST SP 800-162, SP 800-207 Zero Trust).
+ * Roles: ADMIN, EDITOR, VIEWER. Resources: CONTEXT, TOOL, SYSTEM. Actions: READ/WRITE/EXECUTE/ADMIN_OP.
+ * Default-deny: any action/resource pair not in the permission matrix is rejected and audited.
+ * Context-scoped rules: ADMIN_ prefixed contexts require ADMIN role regardless of base permissions.
+ * See docs/SECURITY_REFERENCE.md §"RBAC".
+ */
 import { AuditLedger } from './audit_ledger';
 
 export type Role = 'ADMIN' | 'EDITOR' | 'VIEWER';

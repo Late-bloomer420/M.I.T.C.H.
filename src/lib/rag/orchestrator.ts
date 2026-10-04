@@ -1,3 +1,11 @@
+/**
+ * Push-only double-blind RAG orchestrator (Lewis et al. 2020, OWASP LLM02).
+ * "Push-only": the agent never queries the knowledge base directly — this orchestrator
+ * does, on the agent's behalf, after RBAC + kill-switch checks.
+ * "Double-blind": retrieved results contain only masked tokens; the agent and the vector
+ * DB never see real PII. Results are injected as a system-level context block.
+ * See docs/SECURITY_REFERENCE.md §"RAG Orchestrator".
+ */
 import { ToolTokenProvider } from '../crypto/token';
 import { KillSwitch } from '../security/killswitch';
 import { AuditLedger } from '../security/audit_ledger';

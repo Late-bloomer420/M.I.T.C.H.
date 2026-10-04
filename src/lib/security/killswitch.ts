@@ -1,3 +1,10 @@
+/**
+ * Global circuit breaker for security incidents (NIST SP 800-53 IR-4, NIST AI RMF RESPOND 2.1).
+ * engageLock() is recoverable (admin key required to reset).
+ * engageSelfDestruct() is not — it overwrites and deletes the DB then exits the process.
+ * Every privileged code path checks KillSwitch.isLocked before proceeding.
+ * See docs/SECURITY_REFERENCE.md §"Kill-Switch".
+ */
 import fs from 'fs';
 import path from 'path';
 

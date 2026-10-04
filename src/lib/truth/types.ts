@@ -1,3 +1,11 @@
+/**
+ * Truth Core data model — claims, conflicts, and canonical snapshots.
+ * A ClaimRecord is a provenance-tracked (subject, predicate, object) triple.
+ * A TruthSnapshot is the resolved output: one singleLineOfTruth + supporting claim IDs
+ * + any unresolved TruthConflicts. Provenance-first design means any source can be
+ * retracted and truth re-resolved without the corrupted claims.
+ * See docs/SECURITY_REFERENCE.md §"Truth Core" and docs/TRUTH_CORE_STEP*.md.
+ */
 export type SourceType = 'text' | 'agent_conversation' | 'transcript' | 'video_transcript';
 export type ClaimStatus = 'active' | 'superseded' | 'conflicted' | 'rejected';
 

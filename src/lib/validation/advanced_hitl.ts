@@ -1,3 +1,11 @@
+/**
+ * Human-in-the-Loop approval gate with nonce-based intent binding (NIST AI RMF, IEEE 7001-2021).
+ * LOW risk: auto-approves for all roles. MEDIUM: auto-approves for ADMIN only. HIGH: always queues.
+ * Each queued request generates a one-time 16-byte nonce; approveRequest() verifies the nonce
+ * to prevent replay attacks — a pre-captured approval cannot be reused on a different request.
+ * Auto-deny timeout: 30 seconds.
+ * See docs/SECURITY_REFERENCE.md §"HITL".
+ */
 import EventEmitter from 'events';
 import { AuditLedger } from '../security/audit_ledger';
 
@@ -19,9 +27,9 @@ class AdvancedHitlService extends EventEmitter {
     public pendingRequests: Map<string, ApprovalRequest> = new Map();
 
     async requestApproval(toolName: string, riskLevel: string, userRole: string, reason: string): Promise<boolean> {
-        // Policy-Over-Approval: Admins execute LOW/MEDIUM risks automatically
-        if (userRole === 'ADMIN' && riskLevel !== 'HIGH') {
-            await AuditLedger.log("HITL_AUTO_APPROVE", "SYSTEM", { toolName, riskLevel, reason: "Admin Policy" });
+        // LOW risk auto-approves for all roles; ADMIN also auto-approves MEDIUM
+        if (riskLevel === 'LOW' || (userRole === 'ADMIN' && riskLevel !== 'HIGH')) {
+            await AuditLedger.log("HITL_AUTO_APPROVE", "SYSTEM", { toolName, riskLevel, reason: "Auto-Approve Policy" });
             return true;
         }
 

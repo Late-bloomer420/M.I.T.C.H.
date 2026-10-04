@@ -1,3 +1,11 @@
+/**
+ * Simulated Trusted Platform Module (TCG TPM 2.0 spec, NIST SP 800-164).
+ * seal() binds a key to the current PCR state (measured boot integrity hashes).
+ * unseal() re-derives the wrapping key from current PCRs — fails if they changed,
+ * which is how the TPM detects bootloader/kernel tampering (evil maid attacks).
+ * getAttestationQuote() signs PCR state + caller nonce for remote verification.
+ * See docs/SECURITY_REFERENCE.md §"TPM Provider".
+ */
 import * as crypto from 'crypto';
 
 /**

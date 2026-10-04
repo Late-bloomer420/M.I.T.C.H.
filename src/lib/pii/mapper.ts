@@ -1,3 +1,10 @@
+/**
+ * Context-scoped PII tokenization (NIST SP 800-188, PCI DSS Tokenization Guidelines).
+ * Real values are AES-256-CBC encrypted at rest; the rest of the system only sees tokens.
+ * The same value in different context prefixes produces different tokens, making
+ * cross-context correlation structurally impossible without the identity_map table.
+ * See docs/SECURITY_REFERENCE.md §"PII Tokenization".
+ */
 import { db } from '../../db';
 import { piiTypes, identityMap } from '../../db/schema';
 import { eq, and } from 'drizzle-orm';
