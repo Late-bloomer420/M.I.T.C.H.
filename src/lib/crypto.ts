@@ -1,3 +1,10 @@
+/**
+ * Symmetric encryption (AES-256-CBC, NIST FIPS 197/SP 800-38A) and
+ * keyed hashing (HMAC-SHA256, NIST FIPS 198-1) for the identity vault.
+ * A random IV per call ensures identical plaintexts never produce identical ciphertext.
+ * Key: ENCRYPTION_KEY env var (32 hex-encoded bytes) or hardcoded dev default.
+ * See docs/SECURITY_REFERENCE.md §"Symmetric Encryption".
+ */
 import crypto from 'node:crypto';
 
 // In a real app, these should be environment variables

@@ -1,3 +1,10 @@
+/**
+ * Append-only tamper-evident hash chain (NIST SP 800-92, SP 800-53 AU-9/AU-10).
+ * Each block includes prevHash, so modifying any past entry invalidates all following
+ * hashes — detected by verifyChain(). Tampering triggers KillSwitch.engageLock().
+ * Storage: audit.ledger on disk, one line per block: sha256hex|jsonEntry.
+ * See docs/SECURITY_REFERENCE.md §"Audit Ledger".
+ */
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';

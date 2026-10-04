@@ -1,3 +1,10 @@
+/**
+ * WebAssembly capability sandbox executor (W3C WASM spec, WASI, NIST SP 800-53 SC-39).
+ * Enforces three gates before any tool runs: KillSwitch, HITL approval, manifest permissions.
+ * Only host functions declared in ToolManifest.permissions are injected into the WASM VM;
+ * everything else is unreachable from plugin code regardless of what the plugin tries to call.
+ * See docs/SECURITY_REFERENCE.md §"Sandbox".
+ */
 import { createPlugin, Plugin } from '@extism/js-sdk';
 import { ToolManifest } from './manifest';
 import { advancedHitl } from '../validation/advanced_hitl';
