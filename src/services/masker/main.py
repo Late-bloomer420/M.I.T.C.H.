@@ -13,6 +13,7 @@ except ImportError:
     print("WARNING: FastAPI not found. Running in Logic-Only mode.")
 
 import logging
+import re
 from typing import List, Optional
 # Mock imports for MVP environment where we can't install heavy ML libs
 # In production:
@@ -65,6 +66,16 @@ def local_embed(text: str) -> List[float]:
 
 # --- END MOCK ---
 
+def extract_token_ids(masked_text: str) -> str:
+    """
+    Extracts PII token IDs from masked text (e.g. [PER_a1b2], [ORG_c3d4]).
+    Returns a comma-separated string of token IDs found — this is stored as
+    the identity map reference so ChromaDB entries can be traced back to the
+    IdentityVault rows that hold the encrypted real values.
+    """
+    tokens = re.findall(r'\[([A-Z]{2,3}_[a-zA-Z0-9]+)\]', masked_text)
+    return ",".join(tokens) if tokens else ""
+
 class MemoryItem(BaseModel):
     text: str
     context: str = "GLOBAL"
@@ -82,24 +93,31 @@ def add_memory(item: MemoryItem):
     2. Embed locally (Masked text -> Vector)
     3. Store in ChromaDB (Hot Store)
     """
-    # 1. Masking (Reusing logic from Day 2 mock)
-    # Ideally we call an internal function, not the API endpoint to avoid network overhead
+    # 1. Masking
     masked_text = mock_mask_logic(item.text, item.context)
-    
+
     # 2. Local Embedding
     vector = local_embed(masked_text)
-    
-    # 3. Store
+
+    # 3. Store — original_mask_map_id holds the token IDs extracted from the
+    # masked text, linking this ChromaDB document to the IdentityVault rows
+    # that hold the encrypted real values.
     import uuid
     doc_id = str(uuid.uuid4())
-    collection.add(
-        documents=[masked_text],
-        metadatas=[{"context": item.context, "original_mask_map_id": "TODO"}], # Link to identity map if needed
-        ids=[doc_id],
-        embeddings=[vector]
-    )
-    
-    return {"status": "stored", "id": doc_id, "masked_content": masked_text}
+    mask_map_id = extract_token_ids(masked_text)
+
+    try:
+        collection.add(
+            documents=[masked_text],
+            metadatas=[{"context": item.context, "original_mask_map_id": mask_map_id}],
+            ids=[doc_id],
+            embeddings=[vector]
+        )
+    except Exception as e:
+        logging.error(f"[Masker] Storage failure for doc {doc_id}: {e}")
+        raise HTTPException(status_code=500, detail="Memory storage failed. Input was not persisted.")
+
+    return {"status": "stored", "id": doc_id, "masked_content": masked_text, "mask_map_id": mask_map_id}
 
 @app.post("/memory/retrieve")
 def retrieve_memory(req: RetrieveRequest):
@@ -111,12 +129,16 @@ def retrieve_memory(req: RetrieveRequest):
     """
     masked_query = mock_mask_logic(req.query, req.context)
     query_vector = local_embed(masked_query)
-    
-    results = collection.query(
-        query_embeddings=[query_vector],
-        n_results=3
-    )
-    
+
+    try:
+        results = collection.query(
+            query_embeddings=[query_vector],
+            n_results=3
+        )
+    except Exception as e:
+        logging.error(f"[Masker] Retrieval failure for context '{req.context}': {e}")
+        raise HTTPException(status_code=503, detail="Memory retrieval temporarily unavailable.")
+
     return {"results": results["documents"][0]}
 
 
