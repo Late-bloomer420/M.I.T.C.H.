@@ -3,6 +3,7 @@ import * as crypto from 'crypto';
 import { KillSwitch } from '../lib/security/killswitch';
 import { AuditLedger } from '../lib/security/audit_ledger';
 import { RbacPolicy, UserContext } from '../lib/security/rbac_policy';
+import { advancedHitl } from '../lib/validation/advanced_hitl';
 // In a real app, we'd import the Python Masker/Sanitizer via a bridge.
 // For this prototype, we'll re-implement the sanitization logic in TS or assume the Orchestrator does it.
 // Let's implement a simple TS Sanitizer/Masker here for the CLI wrapper to demonstrate the "Edge Filtering".
@@ -59,7 +60,14 @@ export class MitchChat {
             return;
         }
 
-        // 2. Anti-Malice Sanitization (Task 13)
+        // 2. RBAC gate — user must have WRITE on CONTEXT to submit input
+        const canWrite = await RbacPolicy.checkPermission(this.user, 'WRITE', 'CONTEXT');
+        if (!canWrite) {
+            this.io.output(`❌ ACCESS DENIED: Your role (${this.user.role}) cannot submit context writes.`);
+            return;
+        }
+
+        // 3. Anti-Malice Sanitization (Task 13)
         // Stripping invisible chars and tokenizing emojis
         // Simple TS implementation of what we did in Python
         const sanitized = this.sanitize(input);
@@ -85,7 +93,16 @@ export class MitchChat {
             nonce
         });
 
-        // 6. "Send" to Cloud (Simulation)
+        // 6. HITL gate — require approval before sending to cloud
+        const approved = await advancedHitl.requestApproval(
+            'cloud-send', 'MEDIUM', this.user.role, 'Sending message to cloud reasoner'
+        );
+        if (!approved) {
+            this.io.output(`❌ CLOUD SEND DENIED: Action not approved.`);
+            return;
+        }
+
+        // 7. "Send" to Cloud (Simulation)
         // In a real app, this sends { prompt: masked, nonce, signature } to the Cloud Agent
         this.io.output(`\n☁️  Sending Secure Payload to Cloud Reasoner:`);
         this.io.output(`   [Payload]: ${masked}`);
