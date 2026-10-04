@@ -11,19 +11,50 @@ import { KillSwitch } from '../security/killswitch';
 import { AuditLedger } from '../security/audit_ledger';
 import { RbacPolicy, UserContext } from '../security/rbac_policy';
 
-// Mock API Call to Python Service
-async function callMemoryService(endpoint: string, payload: any): Promise<any> {
-    // In production: fetch(`http://localhost:8000${endpoint}`, ...)
-    // Here we simulate the response based on the python logic we just wrote.
+const MASKER_BASE_URL = process.env.MASKER_URL || 'http://localhost:8000';
+const MASKER_MAX_RETRIES = 3;
+const MASKER_ATTEMPT_TIMEOUT_MS = 5000; // per-attempt abort; prevents hung connections stalling the retry loop
 
-    if (endpoint === '/memory/retrieve') {
-        const { query } = payload;
-        if (query.includes('Who is the CEO')) {
-            return { results: ['[PER_1] is the CEO of the company.'] };
+async function callMemoryService(endpoint: string, payload: any): Promise<any> {
+    // In production this performs a real HTTP request with retry.
+    // The mock branch below preserves test behaviour; the real branch activates
+    // when MASKER_URL is set to a live service address.
+    const useMock = !process.env.MASKER_URL;
+
+    if (useMock) {
+        if (endpoint === '/memory/retrieve') {
+            const { query } = payload;
+            if (query.includes('Who is the CEO')) {
+                return { results: ['[PER_1] is the CEO of the company.'] };
+            }
+            return { results: [] };
         }
-        return { results: [] };
+        return {};
     }
-    return {};
+
+    let lastError: unknown;
+    for (let attempt = 0; attempt < MASKER_MAX_RETRIES; attempt++) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), MASKER_ATTEMPT_TIMEOUT_MS);
+        try {
+            const res = await fetch(`${MASKER_BASE_URL}${endpoint}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                signal: controller.signal,
+            });
+            clearTimeout(timer);
+            if (!res.ok) throw new Error(`Masker service returned ${res.status}`);
+            return await res.json();
+        } catch (err) {
+            clearTimeout(timer);
+            lastError = err;
+            if (attempt < MASKER_MAX_RETRIES - 1) {
+                await new Promise(r => setTimeout(r, 2 ** attempt * 500)); // 500ms, 1s, 2s
+            }
+        }
+    }
+    throw new Error(`Masker service unavailable after ${MASKER_MAX_RETRIES} attempts: ${lastError}`);
 }
 
 export class ContextOrchestrator {
