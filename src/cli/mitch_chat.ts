@@ -95,7 +95,7 @@ export class MitchChat {
 
         // 6. HITL gate — require approval before sending to cloud
         const approved = await advancedHitl.requestApproval(
-            'cloud-send', 'MEDIUM', this.user.role, 'Sending message to cloud reasoner'
+            'cloud-send', 'LOW', this.user.role, 'Sending message to cloud reasoner'
         );
         if (!approved) {
             this.io.output(`❌ CLOUD SEND DENIED: Action not approved.`);
